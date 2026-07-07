@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechNova AI | Review Intelligence Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- Heading -->
+        <h1>📱 TechNova AI</h1>
+
+        <h2>Review Intelligence Platform</h2>
+
+        <p class="subtitle">
+            Analyze smartphone reviews using Machine Learning, NLP, and AI-powered sentiment prediction.
+        </p>
+
+        <!-- Review Form -->
+        <form action="/predict" method="POST" onsubmit="startLoading()">
+
+            <textarea
+                name="review"
+                rows="8"
+                placeholder="Example: The camera quality is excellent, but the battery drains quickly..."
+                required>{{ review if review else '' }}</textarea>
+
+            <button type="submit" id="analyzeBtn">
+                🔍 Analyze Review
+            </button>
+
+        </form>
+
+   <div class="divider">
+    <span>OR</span>
+</div>
+
+<div class="upload-section">
+
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+
+        <input
+              type="file"
+    id="csvFile"
+    name="csv_file"
+    accept=".csv"
+    required
+    hidden>
+
+<label for="csvFile" class="file-label">
+    📂 Choose CSV File
+</label>
+
+<p id="fileName" class="file-name">
+    Ready to analyze your review dataset.
+</p>
+
+        <button type="submit">
+            📂 Analyze CSV
+        </button>
+
+    </form>
+
+</div>
+
+        <!-- Prediction Result -->
+        {% if prediction %}
+
+        <div class="result">
+
+            <h2>Analysis Result</h2>
+
+            <div class="prediction">
+
+                {% if prediction == "Positive" %}
+
+                    <span class="badge positive">🟢 Positive</span>
+
+                {% elif prediction == "Negative" %}
+
+                    <span class="badge negative">🔴 Negative</span>
+
+                {% else %}
+
+                    <span class="badge neutral">🟡 Neutral</span>
+
+                {% endif %}
+
+                <p class="confidence">
+                    Confidence :
+                    <strong>{{ confidence }}%</strong>
+                </p>
+
+                <div class="progress-bar">
+
+                    <div
+                        class="progress-fill"
+                        style="width: {{ confidence }}%;">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+        {% endif %}
+<!-- CSV Summary Dashboard -->
+{% if download_ready %}
+
+<div class="summary-card">
+
+    <h2>✅ CSV Analysis Complete</h2>
+    <p class="summary-subtitle">
+Your review dataset has been analyzed successfully.
+</p>
+
+    <div class="summary-grid">
+
+        <div class="summary-box">
+            <h3>{{ total_reviews }}</h3>
+            <p>Total Reviews</p>
+        </div>
+
+        <div class="summary-box">
+            <h3>{{ positive_count }}</h3>
+            <p>🟢 Positive</p>
+        </div>
+
+        <div class="summary-box">
+            <h3>{{ negative_count }}</h3>
+            <p>🔴 Negative</p>
+        </div>
+
+        <div class="summary-box">
+            <h3>{{ neutral_count }}</h3>
+            <p>🟡 Neutral</p>
+        </div>
+
+        <div class="summary-box">
+    <h3>{{ average_confidence }}%</h3>
+    <p>Average Confidence</p>
+</div>
+
+<a href="/download" class="download-card">
+
+    <div class="summary-box download-box">
+
+        <i class="fa-solid fa-download"></i>
+
+        <p>Download Results</p>
+
+    </div>
+
+</a>
+
+    </div>
+
+</div>
+
+<!-- Pie Chart -->
+<div class="chart-card">
+
+    <h2>📊 Sentiment Distribution</h2>
+
+    <canvas id="sentimentChart"></canvas>
+
+</div>
+        {% endif %}
+
+
+        <!-- Prediction History -->
+        {% if history %}
+
+        <div class="history">
+
+            <div class="history-header">
+
+    <h2>📊 Analysis History</h2>
+
+    <a href="/clear" class="clear-btn">
+        🗑 Clear
+    </a>
+
+</div>
+
+            {% for item in history %}
+
+            <div class="history-card">
+
+        <div class="history-review">
+    <i class="fa-solid fa-quote-left"></i>
+    {{ item.review }}
+</div>
+
+    <div class="history-footer">
+
+        {% if item.prediction == "Positive" %}
+
+            <span class="history-badge positive">
+                🟢 Positive
+            </span>
+
+        {% elif item.prediction == "Negative" %}
+
+            <span class="history-badge negative">
+                🔴 Negative
+            </span>
+
+        {% else %}
+
+            <span class="history-badge neutral">
+                🟡 Neutral
+            </span>
+
+        {% endif %}
+
+        <span class="history-confidence">
+            {{ item.confidence }}%
+        </span>
+
+    </div>
+
+</div>
+
+            {% endfor %}
+
+        </div>
+        {% endif %}
+
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+function startLoading(){
+
+    const button = document.getElementById("analyzeBtn");
+
+    button.innerHTML = "⏳ Analyzing...";
+
+    button.disabled = true;
+
+    return true;
+
+}
+
+// CSV File Name
+const csvFile = document.getElementById("csvFile");
+const fileName = document.getElementById("fileName");
+
+csvFile.addEventListener("change", function(){
+
+    if(csvFile.files.length > 0){
+
+        fileName.innerHTML =
+        "📄 " + csvFile.files[0].name +
+        "<br><span style='color:#22c55e;'>✔ Ready to Analyze</span>";
+
+    }
+
+});
+
+{% if download_ready %}
+
+// Pie Chart
+const ctx = document.getElementById("sentimentChart");
+
+new Chart(ctx, {
+
+    type: "pie",
+
+    data: {
+
+        labels: [
+            "Positive ({{ ((positive_count/total_reviews)*100)|int }}%)",
+            "Negative ({{ ((negative_count/total_reviews)*100)|int }}%)",
+            "Neutral ({{ ((neutral_count/total_reviews)*100)|int }}%)"
+
+        ],
+
+        datasets: [{
+
+            data: [
+                {{ positive_count }},
+                {{ negative_count }},
+                {{ neutral_count }}
+            ],
+
+            backgroundColor: [
+                "#22c55e",
+                "#ef4444",
+                "#facc15"
+            ],
+
+            borderColor: "#3b475c",
+            borderWidth: 4,
+
+            hoverOffset: 10
+
+        }]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        animation: {
+
+            animateRotate: true,
+            animateScale: true,
+            duration: 1200,
+            easing: "easeOutCubic"
+
+        },
+
+        plugins: {
+
+            legend: {
+
+                position: "bottom",
+
+                labels: {
+
+                    color: "white",
+                    usePointStyle: true,
+                    pointStyle: "circle",
+
+                    font: {
+                        size: 16
+                    }
+
+                }
+
+            },
+
+            tooltip: {
+
+                callbacks: {
+
+                    label: function(context){
+
+                        const data = context.dataset.data;
+                        const total = data.reduce((a,b)=>a+b,0);
+                        const value = context.raw;
+                        const percentage = ((value/total)*100).toFixed(1);
+
+                        return context.label +
+                               ": " +
+                               value.toLocaleString() +
+                               " reviews (" +
+                               percentage +
+                               "%)";
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+});
+
+
+{% endif %}
+
+</script>
+
+</body>
+
+</html>
