@@ -105,3 +105,13 @@ https://github.com/aayush0296362
 ---
 
 ⭐ If you like this project, consider giving it a star!
+
+## Screenshots
+
+![Home](screenshots/home.png)
+
+![Prediction](screenshots/prediction.png)
+
+![Dashboard](screenshots/dashboard.png)
+
+![Chart](screenshots/chart.png)
